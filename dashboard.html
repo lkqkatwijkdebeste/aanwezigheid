@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aanwezigheid — Beheerpaneel</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Epilogue:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e1117;
+    --surface: #161b25;
+    --surface2: #1e2535;
+    --border: #2a3347;
+    --accent: #4f9cf9;
+    --accent-glow: rgba(79,156,249,0.15);
+    --green: #34d399;
+    --green-glow: rgba(52,211,153,0.15);
+    --red: #f87171;
+    --text: #e8edf5;
+    --muted: #7a8ba3;
+    --warning: #fbbf24;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Epilogue', sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* ---- LOGIN SCREEN ---- */
+  #loginScreen {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .blob { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.1; pointer-events: none; }
+  .blob-1 { width: 500px; height: 500px; background: var(--accent); top: -150px; right: -150px; }
+  .blob-2 { width: 350px; height: 350px; background: var(--green); bottom: -80px; left: -100px; }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.25rem 2rem;
+    width: 100%;
+    max-width: 360px;
+    z-index: 1;
+    animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px) scale(0.98); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  .lock-icon { font-size: 2rem; margin-bottom: 1rem; }
+
+  .login-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.3rem;
+  }
+
+  .login-card p { font-size: 0.84rem; color: var(--muted); margin-bottom: 1.5rem; }
+
+  .pin-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .pin-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+  .pin-error { font-size: 0.78rem; color: var(--red); margin-bottom: 0.75rem; display: none; }
+
+  .login-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .login-btn:hover { background: #6aadfb; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,156,249,0.3); }
+
+  .login-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.75rem; text-align: center; }
+
+  /* ---- DASHBOARD ---- */
+  #dashScreen { display: none; flex-direction: column; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; }
+  .header-title span { color: var(--accent); }
+
+  .header-right { display: flex; align-items: center; gap: 0.75rem; }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--green-glow);
+    border: 1px solid rgba(52,211,153,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: 0.06em;
+  }
+
+  .live-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); animation:gpulse 2s infinite; }
+  @keyframes gpulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  .hdr-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.85rem;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .hdr-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .hdr-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  main { flex: 1; padding: 1.5rem; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+
+  @media(max-width:700px) { .stats { grid-template-columns: 1fr 1fr; } }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    transition: transform 0.2s;
+  }
+
+  .stat:hover { transform: translateY(-2px); }
+  .stat.highlight { background: var(--accent); border-color: var(--accent); }
+
+  .stat-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+  .stat.highlight .stat-label { color: rgba(255,255,255,0.65); }
+
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--text); line-height: 1; }
+  .stat.highlight .stat-num { color: #fff; }
+
+  .stat-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; }
+  .stat.highlight .stat-sub { color: rgba(255,255,255,0.5); }
+
+  /* GRID */
+  .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1rem; }
+  @media(max-width:800px) { .grid { grid-template-columns: 1fr; } }
+
+  /* PANEL */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+  .panel-head {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2);
+  }
+
+  .panel-head-title { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .count-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+
+  .panel-body { max-height: 440px; overflow-y: auto; }
+  .panel-body::-webkit-scrollbar { width: 3px; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* PERSON */
+  .person {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .person:last-child { border-bottom: none; }
+  .person:hover { background: var(--surface2); }
+
+  .avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .pname { font-size: 0.9rem; font-weight: 500; }
+  .ptime { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-left: auto; flex-shrink: 0; }
+
+  /* LOG */
+  .filter-bar { padding: 0.6rem 1.1rem; border-bottom: 1px solid var(--border); display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+  .fbtn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.72rem; font-weight: 600;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .fbtn:hover, .fbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .log-item {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .log-item:last-child { border-bottom: none; }
+  .log-item:hover { background: var(--surface2); }
+
+  .log-type-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700;
+  }
+
+  .log-type-dot.in  { background: var(--green-glow); color: var(--green); }
+  .log-type-dot.out { background: rgba(248,113,113,0.12); color: var(--red); }
+
+  .log-name { font-size: 0.875rem; font-weight: 500; }
+  .log-date { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+
+  .time-tag {
+    font-size: 0.7rem; font-weight: 600;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 8px; color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* EMPTY */
+  .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); font-size: 0.84rem; }
+  .empty .ei { font-size: 1.75rem; margin-bottom: 0.6rem; opacity: 0.4; }
+
+  /* AVG FOOTER */
+  .avg-footer {
+    margin-top: 1.25rem;
+    background: rgba(251,191,36,0.07);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.76rem;
+    color: var(--warning);
+    line-height: 1.55;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+
+  .config-warning {
+    background: rgba(248,113,113,0.1);
+    border: 1px solid var(--red);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--red);
+    line-height: 1.6;
+  }
+
+  .config-warning strong { font-family: 'Syne', sans-serif; font-size: 1rem; display: block; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="lock-icon">🔐</div>
+    <h2>Beheerder Login</h2>
+    <p>Voer de toegangscode in om het aanwezigheidsdashboard te openen.</p>
+    <input type="password" class="pin-input" id="pinInput" placeholder="••••••" maxlength="12" />
+    <p class="pin-error" id="pinError">Toegangscode onjuist. Probeer opnieuw.</p>
+    <button class="login-btn" onclick="checkPin()">Openen</button>
+    <p class="login-hint">Standaard code: <strong>admin123</strong> — wijzig dit in de broncode</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashScreen">
+  <header>
+    <div class="header-title">Aanwezig<span>heid</span> Dashboard</div>
+    <div class="header-right">
+      <div class="live-badge">Live</div>
+      <button class="hdr-btn" onclick="exportCSV()">↓ CSV</button>
+      <button class="hdr-btn danger" onclick="uitloggen()">Uitloggen</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="configWarning" class="config-warning" style="display:none;margin-bottom:1.5rem;">
+      <strong>⚙️ Firebase niet geconfigureerd</strong>
+      Vul je Firebase-gegevens in het script-blok onderaan dit bestand in. Zie het stappenplan.
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat highlight">
+        <div class="stat-label">Aanwezig</div>
+        <div class="stat-num" id="sAanwezig">–</div>
+        <div class="stat-sub">in pand</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Inchecks vandaag</div>
+        <div class="stat-num" id="sIn" style="color:var(--green)">–</div>
+        <div class="stat-sub">check-ins</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Uitchecks vandaag</div>
+        <div class="stat-num" id="sOut" style="color:var(--red)">–</div>
+        <div class="stat-sub">check-outs</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Totaal ooit</div>
+        <div class="stat-num" id="sTotal">–</div>
+        <div class="stat-sub">registraties</div>
+      </div>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid">
+
+      <!-- AANWEZIG -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-head-title">Momenteel aanwezig</span>
+          <span class="count-chip" id="cAanwezig">0</span>
+        </div>
+        <div class="panel-body" id="listAanwezig">
+          <div class="empty"><div class="ei">👤</div>Niemand aanwezig</div>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-head-title">Activiteitenlog</span>
+          <span class="count-chip" id="cLog">0</span>
+        </div>
+        <div class="filter-bar">
+          <button class="fbtn active" id="f-all"   onclick="setFilter('all')">Alles</button>
+          <button class="fbtn"        id="f-in"    onclick="setFilter('in')">Inchecks</button>
+          <button class="fbtn"        id="f-out"   onclick="setFilter('out')">Uitchecks</button>
+          <button class="fbtn"        id="f-today" onclick="setFilter('today')">Vandaag</button>
+        </div>
+        <div class="panel-body" id="listLog">
+          <div class="empty"><div class="ei">📋</div>Geen activiteit</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="avg-footer">
+      <span>🔒</span>
+      <span><strong>AVG-herinnering:</strong> Deze data bevat persoonsgegevens. Zorg dat alleen bevoegde beheerders toegang hebben. Data wordt na 30 dagen automatisch verwijderd uit Firebase. Verwerk deze gegevens niet voor andere doeleinden dan aanwezigheidsregistratie.</span>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ============================================================
+  // 🔧 STAP 1: Zelfde Firebase-gegevens als in checkin.html
+  // ============================================================
+  const firebaseConfig = {
+    apiKey:            "AIzaSyC5krXNRXGESMpOHp0TCyVBfNy5wztZf4E",
+    authDomain:        "aanwezigheidschema.firebaseapp.com"
+    projectId:         "aanwezigheidschema",
+    storageBucket:     "aanwezigheidschema.firebasestorage.app",
+    messagingSenderId: "994082437106",
+    appId:             "1:994082437106:web:4fa80f5536d8e1c4ba1d6b",
+  };
+
+  // 🔧 STAP 2: Kies hier je toegangscode voor het dashboard
+  const DASHBOARD_CODE = "Fource2030!!";
+  // ============================================================
+
+  const IS_CONFIGURED = !firebaseConfig.apiKey.includes("JOUW");
+  let allData = [];
+  let currentFilter = 'all';
+
+  // ---- LOGIN ----
+  window.checkPin = function() {
+    const val = document.getElementById('pinInput').value;
+    if (val === DASHBOARD_CODE) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashScreen').style.display  = 'flex';
+      if (IS_CONFIGURED) startFirebase(); else document.getElementById('configWarning').style.display = 'block';
+    } else {
+      document.getElementById('pinError').style.display = 'block';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinInput').focus();
+    }
+  };
+
+  document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.checkPin(); });
+
+  window.uitloggen = function() {
+    document.getElementById('dashScreen').style.display  = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+  };
+
+  // ---- FIREBASE ----
+  function startFirebase() {
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    const q   = query(collection(db, 'aanwezigheid'), orderBy('tijdstip', 'asc'), limit(1000));
+
+    onSnapshot(q, snap => {
+      allData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      render();
+    }, err => console.error('Firebase fout:', err));
+
+    window._allData = () => allData;
+  }
+
+  // ---- RENDER ----
+  function todayStr() { return new Date().toLocaleDateString('nl-NL'); }
+
+  function computePresent(data) {
+    const last = {};
+    for (const e of data) last[e.naam?.toLowerCase()] = e;
+    return Object.values(last).filter(e => e.type === 'in');
+  }
+
+  function getInitials(name) {
+    return (name || '?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  }
+
+  function avatarColor(name) {
+    const cols = ['#2563eb','#059669','#dc2626','#7c3aed','#d97706','#0891b2'];
+    let h = 0; for (let c of (name||'')) h=(h*31+c.charCodeAt(0))&0xffffffff;
+    return cols[Math.abs(h)%cols.length];
+  }
+
+  function render() {
+    const present = computePresent(allData);
+    const today   = allData.filter(e => e.datum === todayStr());
+
+    // Stats
+    document.getElementById('sAanwezig').textContent = present.length;
+    document.getElementById('sIn').textContent  = today.filter(e=>e.type==='in').length;
+    document.getElementById('sOut').textContent = today.filter(e=>e.type==='out').length;
+    document.getElementById('sTotal').textContent = allData.length;
+    document.getElementById('cAanwezig').textContent = present.length;
+    document.getElementById('cLog').textContent = allData.length;
+
+    // Aanwezig list
+    const la = document.getElementById('listAanwezig');
+    la.innerHTML = present.length ? present.map(e => `
+      <div class="person">
+        <div class="avatar" style="background:${avatarColor(e.naam)}">${getInitials(e.naam)}</div>
+        <div><div class="pname">${e.naam}</div><div class="ptime">Ingecheckt om ${e.tijd||'?'}</div></div>
+        <div class="online-dot"></div>
+      </div>`) .join('') :
+      `<div class="empty"><div class="ei">👤</div>Niemand aanwezig</div>`;
+
+    renderLog();
+  }
+
+  function renderLog() {
+    let filtered = [...allData].reverse();
+    if (currentFilter === 'in')    filtered = filtered.filter(e=>e.type==='in');
+    if (currentFilter === 'out')   filtered = filtered.filter(e=>e.type==='out');
+    if (currentFilter === 'today') filtered = filtered.filter(e=>e.datum===todayStr());
+
+    const ll = document.getElementById('listLog');
+    ll.innerHTML = filtered.length ? filtered.map(e => `
+      <div class="log-item">
+        <div class="log-type-dot ${e.type}">${e.type==='in'?'↓':'↑'}</div>
+        <div><div class="log-name">${e.naam}</div><div class="log-date">${e.datum||''}</div></div>
+        <div class="time-tag">${e.tijd||'?'}</div>
+      </div>`).join('') :
+      `<div class="empty"><div class="ei">📋</div>Geen resultaten</div>`;
+  }
+
+  window.setFilter = function(f) {
+    currentFilter = f;
+    ['all','in','out','today'].forEach(id =>
+      document.getElementById('f-'+id).classList.toggle('active', id===f)
+    );
+    renderLog();
+  };
+
+  window.exportCSV = function() {
+    if (!allData.length) { alert('Geen data.'); return; }
+    const rows = [['Naam','Type','Datum','Tijd'], ...allData.map(e=>[
+      `"${e.naam}"`,
+      `"${e.type==='in'?'Inchecken':'Uitchecken'}"`,
+      `"${e.datum||''}"`,
+      `"${e.tijd||''}"`
+    ])];
+    const blob = new Blob([rows.map(r=>r.join(',')).join('\n')], {type:'text/csv;charset=utf-8;'});
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `aanwezigheid_${new Date().toISOString().slice(0,10)}.csv`
+    });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+</script>
+</body>
+</html>
