@@ -533,11 +533,9 @@
       document.getElementById('successScreen').style.display = 'block';
       setTimeout(window.reset, 6000);
 
-    } catch (err) {
+} catch (err) {
       console.error(err);
-      alert('Fout bij opslaan: ' + err.message + '\nControleer je Firebase-configuratie.');
-      btn.disabled = false;
-      btn.textContent = currentType === 'in' ? 'Registreer aankomst' : 'Registreer vertrek';
+      alert('FOUT: ' + err.code + '\n' + err.message);
     }
   };
 
