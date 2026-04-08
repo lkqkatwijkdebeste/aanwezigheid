@@ -512,7 +512,7 @@
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <div class="pname">${e.naam}</div>
-            ${e.bedrijf ? '<span style="font-size:0.7rem;font-weight:700;letter-spacing:0.04em;background:' + (e.bedrijf==='LKQ' ? 'rgba(79,156,249,0.15);border:1px solid rgba(79,156,249,0.4);color:#4f9cf9' : 'rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24') + ';border-radius:5px;padding:2px 8px;">' + e.bedrijf + '</span>' : ''}
+            <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.04em;background:${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.15)' : 'rgba(251,191,36,0.15)'};border:1px solid ${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.4)' : 'rgba(251,191,36,0.4)'};color:${e.bedrijf==='LKQ'||!e.bedrijf ? '#4f9cf9' : '#fbbf24'};border-radius:5px;padding:2px 8px;">${e.bedrijf||'LKQ'}</span>
           </div>
           <div class="ptime">Ingecheckt om ${e.tijd||'?'}</div>
         </div>
@@ -536,7 +536,7 @@
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <div class="log-name">${e.naam}</div>
-            ${e.bedrijf ? '<span style="font-size:0.68rem;font-weight:700;letter-spacing:0.04em;background:' + (e.bedrijf==='LKQ' ? 'rgba(79,156,249,0.15);border:1px solid rgba(79,156,249,0.4);color:#4f9cf9' : 'rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24') + ';border-radius:5px;padding:2px 8px;">' + e.bedrijf + '</span>' : ''}
+            <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.04em;background:${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.15)' : 'rgba(251,191,36,0.15)'};border:1px solid ${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.4)' : 'rgba(251,191,36,0.4)'};color:${e.bedrijf==='LKQ'||!e.bedrijf ? '#4f9cf9' : '#fbbf24'};border-radius:5px;padding:2px 8px;">${e.bedrijf||'LKQ'}</span>
           </div>
           <div class="log-date">${e.datum||''}</div>
         </div>
