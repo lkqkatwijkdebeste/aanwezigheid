@@ -437,15 +437,15 @@
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ============================================================
   // 🔧 STAP 1: Vul hier je Firebase-gegevens in
   // (Zie het stappenplan voor hoe je deze gegevens vindt)
   // ============================================================
   const firebaseConfig = {
-    apiKey:            "AIzaSyC5krXNRXGESMpOHp0TCyVBfNy5wztZf4E",
-    authDomain:        "aanwezigheidschema.firebaseapp.com",
+     apiKey:           "AIzaSyC5krXNRXGESMpOHp0TCyVBfNy5wztZf4E",
+    authDomain:        "aanwezigheidschema.firebaseapp.com"
     projectId:         "aanwezigheidschema",
     storageBucket:     "aanwezigheidschema.firebasestorage.app",
     messagingSenderId: "994082437106",
@@ -487,6 +487,88 @@
     }
   };
 
+  // ---- STATUS CHECK: blokkeer dubbele acties ----
+  async function checkStatus(naam) {
+    if (!window._db) return null;
+    try {
+      const snap = await getDocs(window._collection(window._db, 'aanwezigheid'));
+      const entries = snap.docs.map(d => d.data());
+      // Laatste actie van deze persoon
+      const eigen = entries
+        .filter(e => e.naam?.toLowerCase() === naam.toLowerCase())
+        .sort((a, b) => (a.tijdstip?.seconds || 0) - (b.tijdstip?.seconds || 0));
+      return eigen.length ? eigen[eigen.length - 1].type : null;
+    } catch { return null; }
+  }
+
+  function toonStatusMelding(status) {
+    const bestaand = document.getElementById('statusMelding');
+    if (bestaand) bestaand.remove();
+    if (!status) return;
+
+    const div = document.createElement('div');
+    div.id = 'statusMelding';
+    div.style.cssText = `
+      padding: 0.7rem 1rem; border-radius: 10px; font-size: 0.82rem;
+      margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+      ${status === 'in'
+        ? 'background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.4); color: #34d399;'
+        : 'background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.4); color: #f87171;'}
+    `;
+    div.innerHTML = status === 'in'
+      ? '✓ Je bent al ingecheckt — kies <strong style="margin-left:4px">Uitchecken</strong>'
+      : '→ Je bent al uitgecheckt — kies <strong style="margin-left:4px">Inchecken</strong>';
+
+    const veld = document.getElementById('nameInput').parentElement;
+    veld.after(div);
+
+    // Zet automatisch de juiste knop
+    setType(status === 'in' ? 'out' : 'in');
+
+    // Blokkeer de al-gebruikte knop
+    const btnIn  = document.getElementById('btnIn');
+    const btnOut = document.getElementById('btnOut');
+    if (status === 'in') {
+      btnIn.disabled = true;
+      btnIn.style.opacity = '0.35';
+      btnIn.style.cursor = 'not-allowed';
+      btnOut.disabled = false;
+      btnOut.style.opacity = '1';
+      btnOut.style.cursor = 'pointer';
+    } else {
+      btnOut.disabled = true;
+      btnOut.style.opacity = '0.35';
+      btnOut.style.cursor = 'not-allowed';
+      btnIn.disabled = false;
+      btnIn.style.opacity = '1';
+      btnIn.style.cursor = 'pointer';
+    }
+  }
+
+  function resetKnoppen() {
+    ['btnIn','btnOut'].forEach(id => {
+      const btn = document.getElementById(id);
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+    });
+    const bestaand = document.getElementById('statusMelding');
+    if (bestaand) bestaand.remove();
+  }
+
+  // Check status zodra naam is ingevuld (na 600ms pauze)
+  let statusTimer = null;
+  document.getElementById('nameInput').addEventListener('input', e => {
+    clearTimeout(statusTimer);
+    resetKnoppen();
+    const naam = e.target.value.trim();
+    if (naam.length < 2) return;
+    statusTimer = setTimeout(async () => {
+      const status = await checkStatus(naam);
+      toonStatusMelding(status);
+    }, 600);
+  });
+
   // Enable submit only when consent is checked
   document.getElementById('consentCheck').addEventListener('change', e => {
     document.getElementById('submitBtn').disabled = !e.target.checked;
@@ -501,6 +583,15 @@
       return;
     }
     nameErr.style.display = 'none';
+
+    // Dubbele actie check
+    const status = await checkStatus(name);
+    if (status === currentType) {
+      alert(currentType === 'in'
+        ? 'Je bent al ingecheckt! Kies "Uitchecken".'
+        : 'Je bent al uitgecheckt! Kies "Inchecken".');
+      return;
+    }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -533,13 +624,16 @@
       document.getElementById('successScreen').style.display = 'block';
       setTimeout(window.reset, 6000);
 
-} catch (err) {
+    } catch (err) {
       console.error(err);
-      alert('FOUT: ' + err.code + '\n' + err.message);
+      alert('Fout bij opslaan: ' + err.message + '\nControleer je Firebase-configuratie.');
+      btn.disabled = false;
+      btn.textContent = currentType === 'in' ? 'Registreer aankomst' : 'Registreer vertrek';
     }
   };
 
   window.reset = function() {
+    resetKnoppen();
     document.getElementById('nameInput').value  = '';
     document.getElementById('consentCheck').checked = false;
     document.getElementById('submitBtn').disabled   = true;
@@ -551,6 +645,65 @@
   document.getElementById('nameInput')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') window.handleSubmit();
   });
+
+  // ---- AUTO UITCHECKEN OM 23:59 ----
+  async function autoUitcheckenBijMidnacht() {
+    const now = new Date();
+    const db = window._db;
+    if (!db) return;
+
+    // Haal alle ingecheckte mensen op
+    const { getDocs, query, collection, where, addDoc, serverTimestamp } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    try {
+      const snap = await getDocs(collection(db, 'aanwezigheid'));
+      const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Bepaal wie nog ingecheckt is (laatste actie = 'in')
+      const last = {};
+      for (const e of entries) last[e.naam?.toLowerCase()] = e;
+      const nogAanwezig = Object.values(last).filter(e => e.type === 'in');
+
+      // Checkout voor iedereen die nog aanwezig is
+      for (const persoon of nogAanwezig) {
+        await addDoc(collection(db, 'aanwezigheid'), {
+          naam: persoon.naam,
+          type: 'out',
+          tijdstip: serverTimestamp(),
+          datum: now.toLocaleDateString('nl-NL'),
+          tijd: '23:59',
+          verloopt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          automatisch: true
+        });
+      }
+      console.log(`Auto-uitchecken: ${nogAanwezig.length} personen uitgecheckt.`);
+    } catch (err) {
+      console.error('Auto-uitchecken fout:', err);
+    }
+  }
+
+  // Plan de auto-uitcheck voor 23:59 vandaag
+  function planAutoUitchecken() {
+    const now = new Date();
+    const doel = new Date();
+    doel.setHours(23, 59, 0, 0);
+
+    // Als 23:59 al voorbij is, plan voor morgen
+    if (now >= doel) doel.setDate(doel.getDate() + 1);
+
+    const msOver = doel - now;
+    setTimeout(async () => {
+      await autoUitcheckenBijMidnacht();
+      // Plan opnieuw voor de volgende dag
+      planAutoUitchecken();
+    }, msOver);
+
+    console.log(`Auto-uitchecken gepland over ${Math.round(msOver/60000)} minuten.`);
+  }
+
+  // Start de planning zodra Firebase klaar is
+  if (IS_CONFIGURED) planAutoUitchecken();
 </script>
 </body>
 </html>
