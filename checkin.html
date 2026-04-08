@@ -556,14 +556,19 @@
       const eigen = entries
         .filter(e => e.naam?.toLowerCase() === naam.toLowerCase())
         .sort((a, b) => (a.tijdstip?.seconds || 0) - (b.tijdstip?.seconds || 0));
-      return eigen.length ? eigen[eigen.length - 1].type : null;
+      if (!eigen.length) return null;
+      const laatste = eigen[eigen.length - 1];
+      return { type: laatste.type, bedrijf: laatste.bedrijf || 'LKQ' };
     } catch { return null; }
   }
 
-  function toonStatusMelding(status) {
+  function toonStatusMelding(status, bedrijf) {
     const bestaand = document.getElementById('statusMelding');
     if (bestaand) bestaand.remove();
-    if (!status) return;
+    if (!status) {
+      ontgrendelBedrijf();
+      return;
+    }
 
     const div = document.createElement('div');
     div.id = 'statusMelding';
@@ -583,6 +588,13 @@
 
     // Zet automatisch de juiste knop
     setType(status === 'in' ? 'out' : 'in');
+
+    // Vergrendel bedrijf op de waarde waarmee ingecheckt is
+    if (status === 'in' && bedrijf) {
+      vergrendelBedrijf(bedrijf);
+    } else {
+      ontgrendelBedrijf();
+    }
 
     // Blokkeer de al-gebruikte knop
     const btnIn  = document.getElementById('btnIn');
@@ -604,6 +616,55 @@
     }
   }
 
+  function vergrendelBedrijf(bedrijf) {
+    const btnLKQ   = document.getElementById('bedrijfLKQ');
+    const btnAnder = document.getElementById('bedrijfAnder');
+    const input    = document.getElementById('bedrijfInput');
+    const lockMsg  = document.getElementById('bedrijfLock');
+
+    // Stel het juiste bedrijf in
+    if (bedrijf === 'LKQ') {
+      setBedrijf('LKQ');
+    } else {
+      setBedrijf('ander');
+      input.value = bedrijf;
+    }
+
+    // Vergrendel beide knoppen en het invoerveld
+    btnLKQ.disabled   = true;
+    btnAnder.disabled = true;
+    btnLKQ.style.opacity   = '0.5';
+    btnAnder.style.opacity = '0.5';
+    btnLKQ.style.cursor    = 'not-allowed';
+    btnAnder.style.cursor  = 'not-allowed';
+    if (input.style.display !== 'none') input.readOnly = true;
+
+    // Toon vergrendelmelding
+    if (!lockMsg) {
+      const msg = document.createElement('p');
+      msg.id = 'bedrijfLock';
+      msg.style.cssText = 'font-size:0.72rem;color:#fbbf24;margin-top:0.4rem;display:flex;align-items:center;gap:4px;';
+      msg.innerHTML = '🔒 Bedrijf overgenomen van inchecken';
+      document.getElementById('bedrijfAnder').parentElement.after(msg);
+    }
+  }
+
+  function ontgrendelBedrijf() {
+    const btnLKQ   = document.getElementById('bedrijfLKQ');
+    const btnAnder = document.getElementById('bedrijfAnder');
+    const input    = document.getElementById('bedrijfInput');
+    const lockMsg  = document.getElementById('bedrijfLock');
+
+    btnLKQ.disabled   = false;
+    btnAnder.disabled = false;
+    btnLKQ.style.opacity   = '1';
+    btnAnder.style.opacity = '1';
+    btnLKQ.style.cursor    = 'pointer';
+    btnAnder.style.cursor  = 'pointer';
+    input.readOnly = false;
+    if (lockMsg) lockMsg.remove();
+  }
+
   function resetKnoppen() {
     ['btnIn','btnOut'].forEach(id => {
       const btn = document.getElementById(id);
@@ -623,8 +684,8 @@
     const naam = e.target.value.trim();
     if (naam.length < 2) return;
     statusTimer = setTimeout(async () => {
-      const status = await checkStatus(naam);
-      toonStatusMelding(status);
+      const result = await checkStatus(naam);
+      toonStatusMelding(result ? result.type : null, result ? result.bedrijf : null);
     }, 600);
   });
 
@@ -654,12 +715,22 @@
     bedrijfErr.style.display = 'none';
 
     // Dubbele actie check
-    const status = await checkStatus(name);
+    const result = await checkStatus(name);
+    const status = result ? result.type : null;
     if (status === currentType) {
       alert(currentType === 'in'
         ? 'Je bent al ingecheckt! Kies "Uitchecken".'
         : 'Je bent al uitgecheckt! Kies "Inchecken".');
       return;
+    }
+    // Gebruik het bedrijf waarmee ingecheckt is bij uitchecken
+    if (status === 'in' && currentType === 'out' && result.bedrijf) {
+      if (result.bedrijf === 'LKQ') {
+        setBedrijf('LKQ');
+      } else {
+        setBedrijf('ander');
+        document.getElementById('bedrijfInput').value = result.bedrijf;
+      }
     }
 
     const btn = document.getElementById('submitBtn');
@@ -704,6 +775,7 @@
 
   window.reset = function() {
     resetKnoppen();
+    ontgrendelBedrijf();
     document.getElementById('nameInput').value  = '';
     setBedrijf('LKQ');
     document.getElementById('consentCheck').checked = false;
