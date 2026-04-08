@@ -509,9 +509,12 @@
     la.innerHTML = present.length ? present.map(e => `
       <div class="person">
         <div class="avatar" style="background:${avatarColor(e.naam)}">${getInitials(e.naam)}</div>
-        <div>
-          <div class="pname">${e.naam}</div>
-          <div class="ptime">${e.bedrijf ? '<span style="font-size:0.68rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;margin-right:4px;">' + e.bedrijf + '</span>' : ''}Ingecheckt om ${e.tijd||'?'}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div class="pname">${e.naam}</div>
+            ${e.bedrijf ? '<span style="font-size:0.7rem;font-weight:700;letter-spacing:0.04em;background:' + (e.bedrijf==='LKQ' ? 'rgba(79,156,249,0.15);border:1px solid rgba(79,156,249,0.4);color:#4f9cf9' : 'rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24') + ';border-radius:5px;padding:2px 8px;">' + e.bedrijf + '</span>' : ''}
+          </div>
+          <div class="ptime">Ingecheckt om ${e.tijd||'?'}</div>
         </div>
         <div class="online-dot"></div>
       </div>`) .join('') :
@@ -530,9 +533,12 @@
     ll.innerHTML = filtered.length ? filtered.map(e => `
       <div class="log-item">
         <div class="log-type-dot ${e.type}">${e.type==='in'?'↓':'↑'}</div>
-        <div>
-          <div class="log-name">${e.naam}${e.bedrijf && e.bedrijf !== 'LKQ' ? ' <span style="font-size:0.68rem;background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);border-radius:4px;padding:1px 6px;color:var(--accent);">' + e.bedrijf + '</span>' : ''}</div>
-          <div class="log-date">${e.bedrijf || ''} · ${e.datum||''}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div class="log-name">${e.naam}</div>
+            ${e.bedrijf ? '<span style="font-size:0.68rem;font-weight:700;letter-spacing:0.04em;background:' + (e.bedrijf==='LKQ' ? 'rgba(79,156,249,0.15);border:1px solid rgba(79,156,249,0.4);color:#4f9cf9' : 'rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24') + ';border-radius:5px;padding:2px 8px;">' + e.bedrijf + '</span>' : ''}
+          </div>
+          <div class="log-date">${e.datum||''}</div>
         </div>
         <div class="time-tag">${e.tijd||'?'}</div>
       </div>`).join('') :
