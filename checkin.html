@@ -285,6 +285,35 @@
     display: none;
   }
 
+  .bedrijf-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .bedrijf-btn {
+    padding: 0.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+  }
+
+  .bedrijf-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .bedrijf-btn.active {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
   /* LOADING */
   .spinner {
     display: inline-block;
@@ -407,6 +436,16 @@
       <p class="error-msg" id="nameError">Vul je volledige naam in (min. 2 tekens).</p>
     </div>
 
+    <div class="field">
+      <label>Bedrijf</label>
+      <div class="bedrijf-row">
+        <button class="bedrijf-btn active" id="bedrijfLKQ" onclick="setBedrijf('LKQ')">🏢 LKQ</button>
+        <button class="bedrijf-btn" id="bedrijfAnder" onclick="setBedrijf('ander')">+ Ander bedrijf</button>
+      </div>
+      <input type="text" id="bedrijfInput" placeholder="Naam van het bedrijf" autocomplete="organization" style="display:none; margin-top:0.6rem;" />
+      <p class="error-msg" id="bedrijfError">Vul de naam van het bedrijf in.</p>
+    </div>
+
     <div class="toggle-row">
       <button class="toggle-btn active-in" id="btnIn" onclick="setType('in')">✓ Inchecken</button>
       <button class="toggle-btn" id="btnOut" onclick="setType('out')">→ Uitchecken</button>
@@ -468,6 +507,26 @@
   }
 
   let currentType = 'in';
+  let currentBedrijf = 'LKQ';
+
+  window.setBedrijf = function(keuze) {
+    currentBedrijf = keuze;
+    const btnLKQ   = document.getElementById('bedrijfLKQ');
+    const btnAnder = document.getElementById('bedrijfAnder');
+    const input    = document.getElementById('bedrijfInput');
+
+    if (keuze === 'LKQ') {
+      btnLKQ.className   = 'bedrijf-btn active';
+      btnAnder.className = 'bedrijf-btn';
+      input.style.display = 'none';
+      input.value = '';
+    } else {
+      btnLKQ.className   = 'bedrijf-btn';
+      btnAnder.className = 'bedrijf-btn active';
+      input.style.display = 'block';
+      input.focus();
+    }
+  };
 
   window.setType = function(type) {
     currentType = type;
@@ -584,6 +643,16 @@
     }
     nameErr.style.display = 'none';
 
+    // Bedrijf validatie
+    const bedrijfErr = document.getElementById('bedrijfError');
+    let bedrijfNaam = currentBedrijf === 'LKQ' ? 'LKQ' : document.getElementById('bedrijfInput').value.trim();
+    if (currentBedrijf === 'ander' && bedrijfNaam.length < 2) {
+      bedrijfErr.style.display = 'block';
+      document.getElementById('bedrijfInput').focus();
+      return;
+    }
+    bedrijfErr.style.display = 'none';
+
     // Dubbele actie check
     const status = await checkStatus(name);
     if (status === currentType) {
@@ -602,6 +671,7 @@
       // Bewaar ALLEEN wat nodig is (AVG minimale dataverzameling)
       await window._addDoc(window._collection(window._db, 'aanwezigheid'), {
         naam: name,
+        bedrijf: currentBedrijf === 'LKQ' ? 'LKQ' : document.getElementById('bedrijfInput').value.trim(),
         type: currentType,
         tijdstip: window._serverTimestamp(),
         datum: now.toLocaleDateString('nl-NL'),
@@ -635,6 +705,7 @@
   window.reset = function() {
     resetKnoppen();
     document.getElementById('nameInput').value  = '';
+    setBedrijf('LKQ');
     document.getElementById('consentCheck').checked = false;
     document.getElementById('submitBtn').disabled   = true;
     window.setType('in');
