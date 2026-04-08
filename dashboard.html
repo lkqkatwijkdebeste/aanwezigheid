@@ -492,6 +492,15 @@
     return cols[Math.abs(h)%cols.length];
   }
 
+  function bedrijfLabel(bedrijf, size) {
+    const naam = bedrijf || 'LKQ';
+    const isLKQ = naam === 'LKQ';
+    const bg    = isLKQ ? 'rgba(79,156,249,0.15)'  : 'rgba(251,191,36,0.15)';
+    const bdr   = isLKQ ? 'rgba(79,156,249,0.4)'   : 'rgba(251,191,36,0.4)';
+    const clr   = isLKQ ? '#4f9cf9'                : '#fbbf24';
+    return `<span style="font-size:${size||'0.7rem'};font-weight:700;letter-spacing:0.04em;background:${bg};border:1px solid ${bdr};color:${clr};border-radius:5px;padding:2px 8px;">${naam}</span>`;
+  }
+
   function render() {
     const present = computePresent(allData);
     const today   = allData.filter(e => e.datum === todayStr());
@@ -512,7 +521,7 @@
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <div class="pname">${e.naam}</div>
-            <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.04em;background:${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.15)' : 'rgba(251,191,36,0.15)'};border:1px solid ${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.4)' : 'rgba(251,191,36,0.4)'};color:${e.bedrijf==='LKQ'||!e.bedrijf ? '#4f9cf9' : '#fbbf24'};border-radius:5px;padding:2px 8px;">${e.bedrijf||'LKQ'}</span>
+            ${bedrijfLabel(e.bedrijf, '0.7rem')}
           </div>
           <div class="ptime">Ingecheckt om ${e.tijd||'?'}</div>
         </div>
@@ -536,7 +545,7 @@
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <div class="log-name">${e.naam}</div>
-            <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.04em;background:${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.15)' : 'rgba(251,191,36,0.15)'};border:1px solid ${e.bedrijf==='LKQ'||!e.bedrijf ? 'rgba(79,156,249,0.4)' : 'rgba(251,191,36,0.4)'};color:${e.bedrijf==='LKQ'||!e.bedrijf ? '#4f9cf9' : '#fbbf24'};border-radius:5px;padding:2px 8px;">${e.bedrijf||'LKQ'}</span>
+            ${bedrijfLabel(e.bedrijf, '0.68rem')}
           </div>
           <div class="log-date">${e.datum||''}</div>
         </div>
