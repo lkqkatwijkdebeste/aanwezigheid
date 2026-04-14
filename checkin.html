@@ -813,6 +813,12 @@
       const snap = await getDocs(collection(db, 'aanwezigheid'));
       const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+      // Sorteer op tijdstip zodat de laatste actie per persoon correct is
+      entries.sort((a, b) => {
+        const ta = a.tijdstip?.seconds || 0;
+        const tb = b.tijdstip?.seconds || 0;
+        return ta - tb;
+      });
       // Bepaal wie nog ingecheckt is (laatste actie = 'in')
       const last = {};
       for (const e of entries) last[e.naam?.toLowerCase()] = e;
