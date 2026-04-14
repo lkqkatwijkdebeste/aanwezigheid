@@ -1,0 +1,28 @@
+name: Verwijder oude data (30 dagen)
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Elke nacht om 02:00 UTC
+  workflow_dispatch:      # Ook handmatig te starten
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verwijder registraties ouder dan 30 dagen
+        run: |
+          npm install firebase-admin
+          node -e "
+          const admin = require('firebase-admin');
+          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+          admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+          const db = admin.firestore();
+          const grens = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          db.collection('aanwezigheid').where('tijdstip', '<', grens).get().then(snap => {
+            const batch = db.batch();
+            snap.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }).then(() => { console.log('Klaar'); process.exit(0); });
+          "
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
