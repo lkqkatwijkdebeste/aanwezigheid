@@ -858,7 +858,6 @@
     const offset = nowUTC - nowNL;
     let doel = new Date(new Date(doelNLString).getTime() + offset);
     if (doel <= now) doel = new Date(doel.getTime() + 24 * 60 * 60 * 1000);
-    doel = new Date(now.getTime() + 10000);
     const msOver = doel - now;
     setTimeout(async () => {
       await autoUitcheckenBijMidnacht();
@@ -866,6 +865,10 @@
     }, msOver);
     console.log(`Auto-uitchecken gepland over ${Math.round(msOver/60000)} minuten (23:59 NL-tijd).`);
   }
+
+  // Zet functies op window zodat ze testbaar zijn vanuit console
+  window.autoUitcheckenBijMidnacht = autoUitcheckenBijMidnacht;
+  window.planAutoUitchecken = planAutoUitchecken;
 
   // Start de planning zodra Firebase klaar is
   if (IS_CONFIGURED) planAutoUitchecken();
