@@ -795,8 +795,18 @@
     const db = window._db;
     if (!db) return;
 
-    // Haal alle ingecheckte mensen op
-    const { getDocs, query, collection, where, addDoc, serverTimestamp } =
+    // Voorkom dat meerdere tabbladen/telefoons tegelijk uitchecken:
+    // sla een sleutel op in localStorage met de datum van vandaag
+    const vandaag = now.toLocaleDateString('nl-NL');
+    const lockKey = 'autoUitcheck_' + vandaag;
+    if (localStorage.getItem(lockKey)) {
+      console.log('Auto-uitchecken: al gedaan vandaag op dit apparaat, overgeslagen.');
+      return;
+    }
+    // Zet de lock meteen zodat andere tabbladen op hetzelfde apparaat stoppen
+    localStorage.setItem(lockKey, '1');
+
+    const { getDocs, collection, addDoc, serverTimestamp } =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     try {
@@ -808,41 +818,52 @@
       for (const e of entries) last[e.naam?.toLowerCase()] = e;
       const nogAanwezig = Object.values(last).filter(e => e.type === 'in');
 
-      // Checkout voor iedereen die nog aanwezig is
+      // Controleer ook in Firebase of er al een automatische uitcheck is vandaag
+      const alUitgecheckt = new Set(
+        entries
+          .filter(e => e.automatisch === true && e.datum === vandaag && e.type === 'out')
+          .map(e => e.naam?.toLowerCase())
+      );
+
+      // Checkout alleen voor wie nog NIET automatisch is uitgecheckt vandaag
+      let aantal = 0;
       for (const persoon of nogAanwezig) {
+        if (alUitgecheckt.has(persoon.naam?.toLowerCase())) continue;
         await addDoc(collection(db, 'aanwezigheid'), {
           naam: persoon.naam,
+          bedrijf: persoon.bedrijf || 'LKQ',
           type: 'out',
           tijdstip: serverTimestamp(),
-          datum: now.toLocaleDateString('nl-NL'),
+          datum: vandaag,
           tijd: '23:59',
           verloopt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           automatisch: true
         });
+        aantal++;
       }
-      console.log(`Auto-uitchecken: ${nogAanwezig.length} personen uitgecheckt.`);
+      console.log(`Auto-uitchecken: ${aantal} personen uitgecheckt.`);
     } catch (err) {
       console.error('Auto-uitchecken fout:', err);
+      localStorage.removeItem(lockKey);
     }
   }
 
-  // Plan de auto-uitcheck voor 23:59 vandaag
+  // Plan de auto-uitcheck voor 23:59 Nederlandse tijd (Europe/Amsterdam)
   function planAutoUitchecken() {
     const now = new Date();
-    const doel = new Date();
-    doel.setHours(23, 59, 0, 0);
-
-    // Als 23:59 al voorbij is, plan voor morgen
-    if (now >= doel) doel.setDate(doel.getDate() + 1);
-
+    const datumNL = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Amsterdam' });
+    const doelNLString = datumNL + 'T23:59:00';
+    const nowUTC = now.getTime();
+    const nowNL  = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Amsterdam' })).getTime();
+    const offset = nowUTC - nowNL;
+    let doel = new Date(new Date(doelNLString).getTime() + offset);
+    if (doel <= now) doel = new Date(doel.getTime() + 24 * 60 * 60 * 1000);
     const msOver = doel - now;
     setTimeout(async () => {
       await autoUitcheckenBijMidnacht();
-      // Plan opnieuw voor de volgende dag
       planAutoUitchecken();
     }, msOver);
-
-    console.log(`Auto-uitchecken gepland over ${Math.round(msOver/60000)} minuten.`);
+    console.log(`Auto-uitchecken gepland over ${Math.round(msOver/60000)} minuten (23:59 NL-tijd).`);
   }
 
   // Start de planning zodra Firebase klaar is
