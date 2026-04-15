@@ -38,13 +38,9 @@ jobs:
             const nu = new Date();
             const vandaag = nu.toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' });
 
-            // Haal het huidige uur op in NL-tijdzone
-            const uurNL = parseInt(nu.toLocaleTimeString('nl-NL', {
-              timeZone: 'Europe/Amsterdam', hour: '2-digit', hour12: false
-            }));
-
-            // Alleen uitchecken als het 23:xx is in NL-tijd
-            const uitcheckenActief = uurNL === 23;
+            // Alleen uitchecken als het tussen 21:00 UTC en 02:00 UTC is (= nacht NL-tijd)
+            const uurUTC = nu.getUTCHours();
+            const uitcheckenActief = uurUTC >= 21 || uurUTC < 2;
 
             const alUitgecheckt = new Set(
               entries
