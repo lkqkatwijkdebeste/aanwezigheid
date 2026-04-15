@@ -2,7 +2,10 @@ name: Nachtelijke taken (23:59 NL-tijd)
 
 on:
   schedule:
-    - cron: '59 21 * * *'  # 21:59 UTC = 23:59 Nederlandse tijd (zomer UTC+2)
+    - cron: '59 21 * * *'  # 21:59 UTC = 23:59 Nederlandse zomertijd (UTC+2)
+    - cron: '59 22 * * *'  # 22:59 UTC = 23:59 Nederlandse wintertijd (UTC+1)
+    - cron: '30 3 * * 1'   # Maandag 05:30 NL zomertijd (houdt workflow actief)
+    - cron: '30 4 * * 1'   # Maandag 05:30 NL wintertijd (houdt workflow actief)
   workflow_dispatch:        # Ook handmatig te starten
 
 jobs:
@@ -22,50 +25,53 @@ jobs:
             const snap = await db.collection('aanwezigheid').get();
             const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            // Sorteer op tijdstip zodat laatste actie per persoon correct is
             entries.sort((a, b) => {
               const ta = a.tijdstip ? a.tijdstip.seconds : 0;
               const tb = b.tijdstip ? b.tijdstip.seconds : 0;
               return ta - tb;
             });
 
-            // Bepaal wie nog ingecheckt is
             const last = {};
             for (const e of entries) last[e.naam.toLowerCase()] = e;
             const nogAanwezig = Object.values(last).filter(e => e.type === 'in');
 
-            // Datum in Nederlandse tijdzone
             const nu = new Date();
             const vandaag = nu.toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' });
-            const tijd = '23:59';
 
-            // Controleer wie al automatisch is uitgecheckt vandaag
+            // Haal het huidige uur op in NL-tijdzone
+            const uurNL = parseInt(nu.toLocaleTimeString('nl-NL', {
+              timeZone: 'Europe/Amsterdam', hour: '2-digit', hour12: false
+            }));
+
+            // Alleen uitchecken als het 23:xx is in NL-tijd
+            const uitcheckenActief = uurNL === 23;
+
             const alUitgecheckt = new Set(
               entries
                 .filter(e => e.automatisch === true && e.datum === vandaag && e.type === 'out')
                 .map(e => e.naam.toLowerCase())
             );
 
-            // Uitchecken
             let aantalUit = 0;
-            const verlooptDatum = new Date(nu.getTime() + 30 * 24 * 60 * 60 * 1000);
-            for (const persoon of nogAanwezig) {
-              if (alUitgecheckt.has(persoon.naam.toLowerCase())) continue;
-              await db.collection('aanwezigheid').add({
-                naam: persoon.naam,
-                bedrijf: persoon.bedrijf || 'LKQ',
-                type: 'out',
-                tijdstip: admin.firestore.Timestamp.now(),
-                datum: vandaag,
-                tijd: tijd,
-                verloopt: verlooptDatum,
-                automatisch: true
-              });
-              aantalUit++;
+            if (uitcheckenActief) {
+              const verlooptDatum = new Date(nu.getTime() + 30 * 24 * 60 * 60 * 1000);
+              for (const persoon of nogAanwezig) {
+                if (alUitgecheckt.has(persoon.naam.toLowerCase())) continue;
+                await db.collection('aanwezigheid').add({
+                  naam: persoon.naam,
+                  bedrijf: persoon.bedrijf || 'LKQ',
+                  type: 'out',
+                  tijdstip: admin.firestore.Timestamp.now(),
+                  datum: vandaag,
+                  tijd: '23:59',
+                  verloopt: verlooptDatum,
+                  automatisch: true
+                });
+                aantalUit++;
+              }
             }
-            console.log('Auto-uitchecken: ' + aantalUit + ' personen uitgecheckt.');
+            console.log('Uitchecken actief: ' + uitcheckenActief + ' | Uitgecheckt: ' + aantalUit);
 
-            // Verwijder data ouder dan 30 dagen
             const grens = new Date(nu.getTime() - 30 * 24 * 60 * 60 * 1000);
             const oudSnap = await db.collection('aanwezigheid')
               .where('tijdstip', '<', grens).get();
