@@ -1,22 +1,18 @@
 const admin = require('firebase-admin');
 
-const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+// Bouw de service account op en fix de private key
+const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY || '';
 
-if (!privateKey) {
-  console.error('FIREBASE_PRIVATE_KEY is leeg!');
-  process.exit(1);
-}
-
-// Vervang letterlijke \n door echte newlines
-const privateKeyFixed = privateKey.includes('\\n') 
-  ? privateKey.replace(/\\n/g, '\n')
-  : privateKey;
+// Verwijder eventuele aanhalingstekens die GitHub er omheen zet
+const privateKeyClean = privateKeyRaw
+  .replace(/^"+|"+$/g, '')  // verwijder aanhalingstekens aan begin/eind
+  .replace(/\\n/g, '\n');   // vervang \n door echte newlines
 
 const serviceAccount = {
   type: "service_account",
   project_id: process.env.FIREBASE_PROJECT_ID,
   private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: privateKeyFixed,
+  private_key: privateKeyClean,
   client_email: process.env.FIREBASE_CLIENT_EMAIL,
   client_id: process.env.FIREBASE_CLIENT_ID,
   auth_uri: "https://accounts.google.com/o/oauth2/auth",
@@ -25,12 +21,14 @@ const serviceAccount = {
 
 console.log('Project ID:', serviceAccount.project_id);
 console.log('Client email:', serviceAccount.client_email);
-console.log('Private key begint met:', privateKeyFixed.substring(0, 40));
+console.log('Private key eerste regel:', privateKeyClean.split('\n')[0]);
+console.log('Private key aantal regels:', privateKeyClean.split('\n').length);
 
 try {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
+  console.log('Firebase geinitialiseerd!');
 } catch(e) {
   console.error('initializeApp fout:', e.message);
   process.exit(1);
