@@ -92,15 +92,6 @@ jobs:
             console.log('Oude data verwijderd: ' + oudSnap.size + ' registraties.');
 
             process.exit(0);
-          }
-
-          run().catch(err => { console.error('Fout:', err); process.exit(1); });
-          SCRIPT
-          - name: Debug secret
-        run: |
-          echo "Secret lengte: ${#FIREBASE_SERVICE_ACCOUNT}"
-          echo "Eerste 50 tekens: ${FIREBASE_SERVICE_ACCOUNT:0:50}"
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}node script.js
+          }node script.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
