@@ -2,10 +2,10 @@ name: Nachtelijke taken (23:59 NL-tijd)
 
 on:
   schedule:
-    - cron: '59 21 * * *'  # 21:59 UTC = 23:59 Nederlandse zomertijd (UTC+2)
-    - cron: '59 22 * * *'  # 22:59 UTC = 23:59 Nederlandse wintertijd (UTC+1)
-    - cron: '30 3 * * 1'   # Maandag 05:30 NL zomertijd (houdt workflow actief)
-    - cron: '30 4 * * 1'   # Maandag 05:30 NL wintertijd (houdt workflow actief)
+    - cron: '59 21 * * *'
+    - cron: '59 22 * * *'
+    - cron: '30 3 * * 1'
+    - cron: '30 4 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -21,4 +21,8 @@ jobs:
       - name: Auto-uitchecken en oude data verwijderen
         run: node cleanup.js
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
