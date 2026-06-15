@@ -92,6 +92,7 @@ jobs:
             console.log('Oude data verwijderd: ' + oudSnap.size + ' registraties.');
 
             process.exit(0);
-          }node script.js
+          }
+          node script.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
