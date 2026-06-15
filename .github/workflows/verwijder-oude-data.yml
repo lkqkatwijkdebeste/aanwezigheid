@@ -6,7 +6,7 @@ on:
     - cron: '59 22 * * *'  # 22:59 UTC = 23:59 Nederlandse wintertijd (UTC+1)
     - cron: '30 3 * * 1'   # Maandag 05:30 NL zomertijd (houdt workflow actief)
     - cron: '30 4 * * 1'   # Maandag 05:30 NL wintertijd (houdt workflow actief)
-  workflow_dispatch:        # Ook handmatig te starten
+  workflow_dispatch:
 
 jobs:
   nachtelijke-taken:
@@ -15,10 +15,26 @@ jobs:
       - name: Auto-uitchecken en oude data verwijderen
         run: |
           npm install firebase-admin
-          node -e "
+          cat > script.js << 'SCRIPT'
           const admin = require('firebase-admin');
-          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-          admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+
+          let serviceAccount;
+          try {
+            serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+          } catch(e) {
+            console.error('Kon service account niet inlezen:', e.message);
+            process.exit(1);
+          }
+
+          if (!serviceAccount || !serviceAccount.private_key) {
+            console.error('Service account mist private_key. Controleer de GitHub secret.');
+            process.exit(1);
+          }
+
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+
           const db = admin.firestore();
 
           async function run() {
@@ -37,8 +53,6 @@ jobs:
 
             const nu = new Date();
             const vandaag = nu.toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' });
-
-            // Alleen uitchecken als het tussen 21:00 UTC en 02:00 UTC is (= nacht NL-tijd)
             const uurUTC = nu.getUTCHours();
             const uitcheckenActief = uurUTC >= 21 || uurUTC < 2;
 
@@ -60,7 +74,7 @@ jobs:
                   tijdstip: admin.firestore.Timestamp.now(),
                   datum: vandaag,
                   tijd: '23:59',
-                  verloopt: verlooptDatum,
+                  verloopt: new Date(nu.getTime() + 30 * 24 * 60 * 60 * 1000),
                   automatisch: true
                 });
                 aantalUit++;
@@ -80,7 +94,8 @@ jobs:
             process.exit(0);
           }
 
-          run().catch(err => { console.error(err); process.exit(1); });
-          "
+          run().catch(err => { console.error('Fout:', err); process.exit(1); });
+          SCRIPT
+          node script.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
