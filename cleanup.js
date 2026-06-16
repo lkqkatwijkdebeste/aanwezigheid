@@ -1,34 +1,14 @@
 const admin = require('firebase-admin');
 
-// Bouw de service account op en fix de private key
-const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY || '';
-
-// Verwijder eventuele aanhalingstekens die GitHub er omheen zet
-const privateKeyClean = privateKeyRaw
-  .replace(/^"+|"+$/g, '')  // verwijder aanhalingstekens aan begin/eind
-  .replace(/\\n/g, '\n');   // vervang \n door echte newlines
-
-const serviceAccount = {
-  type: "service_account",
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: privateKeyClean,
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token"
-};
-
-console.log('Project ID:', serviceAccount.project_id);
-console.log('Client email:', serviceAccount.client_email);
-console.log('Private key eerste regel:', privateKeyClean.split('\n')[0]);
-console.log('Private key aantal regels:', privateKeyClean.split('\n').length);
+// Gebruik het service account bestand via GOOGLE_APPLICATION_CREDENTIALS
+const projectId = process.env.FIREBASE_PROJECT_ID;
 
 try {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.applicationDefault(),
+    projectId: projectId
   });
-  console.log('Firebase geinitialiseerd!');
+  console.log('Firebase geinitialiseerd met project:', projectId);
 } catch(e) {
   console.error('initializeApp fout:', e.message);
   process.exit(1);
